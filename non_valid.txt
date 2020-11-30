@@ -1,0 +1,8 @@
+static void function test() {
+	System.out.println("Test");
+	int a; 
+  a += 1;
+	int a; 
+  a += 1;
+	System.out.println("Test");
+}

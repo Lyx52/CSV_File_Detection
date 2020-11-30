@@ -1,0 +1,38 @@
+import py7zr, binascii
+
+with open("Files.7z", "rb") as file:
+  file_bytes = list(file.read())
+  offset = int.from_bytes(file_bytes[12:20], byteorder='little') + 0x20
+
+  file_bytes[offset + 10] = 32
+  with open("Broken.7z", "wb") as broken_file:
+    broken_file.write(bytearray(file_bytes))
+    broken_file.close()
+  file.close()
+
+file_bytes = list((open("Broken.7z", "rb")).read())
+
+
+signature_header = file_bytes[0:0x20]
+offset = int.from_bytes(signature_header[12:20], byteorder='little') + 0x20
+length = int.from_bytes(signature_header[20:28], byteorder='little')
+
+end_header = file_bytes[offset:offset + length]
+
+
+# Calculate and replace end header
+signature_header[28:32] = list(int.to_bytes(binascii.crc32(bytearray(end_header)), 4, byteorder='little'))
+top_header = signature_header[12:32]
+
+signature_header[8:12] = list(int.to_bytes(binascii.crc32(bytearray(top_header)), 4, byteorder='little'))
+
+
+file_bytes[0x00:0x20] = signature_header
+
+with open("Broken_new.7z", "wb") as file:
+  file.write(bytearray(file_bytes))
+  file.close()
+
+archive = py7zr.SevenZipFile('Broken_new.7z', mode='r')
+archive.extractall(path="/tmp")
+archive.close()

@@ -1,0 +1,60 @@
+// Stundas API Main File
+// Reinis Gunrs Mednis, Ikars Melnalksnis 2020
+
+const express = require('express');
+const dotenv = require('dotenv');
+const DBconnection = require('./config/db');
+const errorHandler = require('./middleware/error');
+const ErrorResponse = require('./utils/errorResponse');
+const mongoSanitize = require('express-mongo-sanitize');
+
+// Load ENV data
+dotenv.config({
+  path: './config/config.env',
+});
+
+// Initiate database connection
+DBconnection();
+
+// Routes
+const stundas = require('./routes/stundas');
+const changes = require('./routes/izmainas');
+const times = require('./routes/laiki');
+
+// Express definition
+const app = express();
+
+// Middleware
+app.use(mongoSanitize()); // NoSQL injection sanitize
+
+// Mount Routes
+app.use('/api/v1/stundas', stundas);
+app.use('/api/v1/izmainas', changes);
+app.use('/api/v1/laiki', times);
+
+// 404 Route
+app.use((req, res, next) => {
+  return next(new ErrorResponse('Endpoint not found!', 404));
+});
+
+// Error Handler
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 5000;
+
+const server = app.listen(PORT, () => {
+  // Startup info
+  console.log(
+    `-- Stundas API Server -- \n`,
+    `API Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
+  );
+  app.set('json spaces', 3);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err, promise) => {
+  // Log the error
+  console.log(`Promise Error: ${err}`);
+  // End server
+  server.close(() => process.exit(1));
+});
