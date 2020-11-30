@@ -1,4 +1,16 @@
-import glob
+import glob, time, sys, os
+from multiprocessing import Pool
+
+
+args = sys.argv
+output_file_dir = "./script/output_csv_detection.txt"
+
+try:
+  if args[1] == '-out':
+    output_file_dir == args[2]
+except:
+  print("Could not parse arguments running default")
+  output_file_dir = "./script/output_csv_detection.txt"
 
 def valid_columns(columns, length=-1):
   for column in columns:
@@ -24,8 +36,8 @@ def is_comment(column):
 def invalid_column_contents(column, sepparator):
   return not column in white_spaces and not is_comment(column) and not column.endswith('{\n') or not column.endswith('{')
 
-def is_csv(file, min_valid_lines=1, sepparator=';'):
-  with open(file, "r") as file:
+def is_csv(filename, accuracy=90, sepparator=';'):
+  with open(filename, "r") as file:
     valid_line_count = 0
     total_lines = 0
     for line in file:
@@ -34,16 +46,30 @@ def is_csv(file, min_valid_lines=1, sepparator=';'):
 
       if column_count > 2:
         valid_line_count += 1
-          
-      if column_count > 1:
+      elif column_count > 1:
         if valid_columns(columns):
           valid_line_count += 1
 
       total_lines += 1
-  if min_valid_lines > total_lines:
-    min_valid_lines = total_lines
-  return valid_line_count >= min_valid_lines
 
-for text_file in glob.glob("./*.txt"):
-  if is_csv(text_file, min_valid_lines=150, sepparator=';'):
-    print(text_file, " is valid!")  
+  precent_of_valid_lines = valid_line_count / (total_lines / 100)
+
+  if precent_of_valid_lines >= accuracy:
+    return filename
+  else:
+    return ''
+
+if __name__ == '__main__':
+  file_list = glob.glob("./*.txt")
+  start_time = time.time()
+  with Pool(4) as process_pool:
+    processed_files = [filename for filename in process_pool.map(is_csv, file_list) if filename != '']
+
+    os.makedirs(os.path.dirname(output_file_dir), exist_ok=True)
+
+    with open(output_file_dir, "w") as out:
+      for file in processed_files:
+        out.write("{} \n".format(file))
+      
+      out.write("\n\nFinished in {} seconds".format(time.time() - start_time))
+    print("Finished in {} seconds".format(time.time() - start_time))

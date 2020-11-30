@@ -1,0 +1,5 @@
+./valid_txt.txt 
+./valid_txt_2.txt 
+
+
+Finished in 0.06848502159118652 seconds
